@@ -12,9 +12,17 @@
   margin: 0;
 }
 
+.main {
+  position: relative;
+  display: flex;
+}
+
 .panel {
   position: relative;
+  width: 300px;
+  margin-right: 20px;
 }
+
 .imagePanel {
   position: relative;
   height: 450px;
@@ -38,4 +46,19 @@
 }
 .canvas {
   z-index: 2;
+}
+
+@media screen and (max-width: 600px) {
+  
+  .main {
+    position: relative;
+    display: block;
+  }
+  
+  .panel {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
 }

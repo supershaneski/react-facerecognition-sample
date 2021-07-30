@@ -26,20 +26,29 @@ class App extends React.PureComponent {
       scoreThreshold: 0.5,
       inputSize: 608,
       inputIndex: 5,
+      refMessage: "",
+      queryMessage: "",
     }
 
     this.refCanvas = React.createRef()
     this.refImage = React.createRef()
     this.refFile = React.createRef()
 
+    this.queryCanvas = React.createRef()
+    this.queryImage = React.createRef()
+    this.queryFile = React.createRef()
+
     this.loadRefImage = this.loadRefImage.bind(this)
+    this.loadQueryImage = this.loadQueryImage.bind(this)
 
     this.loadTinyModel = this.loadTinyModel.bind(this)
+    
     this.getFaceDetectorOptions = this.getFaceDetectorOptions.bind(this)
     this.getCurrentFaceDetectionNet = this.getCurrentFaceDetectionNet.bind(this)
     this.isFaceDetectionModelLoaded = this.isFaceDetectionModelLoaded.bind(this)
 
     this.updateRefImageResults = this.updateRefImageResults.bind(this)
+    this.updateQueryImageResults = this.updateQueryImageResults.bind(this)
 
   }
 
@@ -56,6 +65,7 @@ class App extends React.PureComponent {
     this.setState({
       inputSize: 608,
       inputIndex: 5,
+      refMessage: ""
     })
 
     const ctx = this.refCanvas.current.getContext("2d")
@@ -66,6 +76,25 @@ class App extends React.PureComponent {
     this.refImage.current.src = img.src;
 
     await this.updateRefImageResults()
+
+  }
+
+  async loadQueryImage() {
+
+    this.setState({
+      inputSize: 608,
+      inputIndex: 5,
+      queryMessage: ""
+    })
+
+    const ctx = this.queryCanvas.current.getContext("2d")
+    ctx.clearRect(0, 0, 300, 450)
+    
+    const imgFile = this.queryFile.current.files[0]
+    const img = await faceapi.bufferToImage(imgFile)
+    this.queryImage.current.src = img.src;
+    
+    await this.updateQueryImageResults()
 
   }
 
@@ -119,6 +148,12 @@ class App extends React.PureComponent {
 
         }, 500)
 
+      } else {
+
+        this.setState({
+          refMessage: "cannot detect"
+        })
+
       }
 
       return;
@@ -159,6 +194,74 @@ class App extends React.PureComponent {
 
       }, 500)
 
+    } else {
+
+      if(score === 0) {
+
+        this.setState({
+          refMessage: "cannot detect"
+        })
+
+      }
+      
+
+    }
+
+  }
+
+  async updateQueryImageResults() {
+
+    await this.loadTinyModel()
+
+    if(!faceMatcher) {
+      return;
+    }
+
+    const results = await faceapi
+      .detectAllFaces(this.queryImage.current, this.getFaceDetectorOptions())
+      .withFaceLandmarks()
+      .withFaceDescriptors()
+
+    faceapi.matchDimensions(this.queryCanvas.current, this.queryImage.current)
+
+    const resizedResults = faceapi.resizeResults(results, this.queryImage.current)
+
+    const score = resizedResults.length > 0 ? resizedResults[0].detection._score : 0;
+    
+    resizedResults.forEach(({detection, descriptor}) => {
+      const label = faceMatcher.findBestMatch(descriptor).toString()
+      const options = { label }
+      const drawBox = new faceapi.draw.DrawBox(detection.box, options)
+      drawBox.draw(this.queryCanvas.current)
+    })
+
+    if(score === 0 && this.state.inputIndex > 0) {
+
+      const newIndex = this.state.inputIndex - 1
+
+      const newInputSize = listInputSizes[newIndex]
+
+      this.setState({
+        inputSize: newInputSize,
+        inputIndex: newIndex,
+      })
+
+      setTimeout(() => {
+
+        this.updateQueryImageResults()
+
+      }, 500)
+
+    } else {
+
+      if(score === 0) {
+
+        this.setState({
+          queryMessage: "No match"
+        })
+
+      }
+
     }
 
   }
@@ -167,19 +270,37 @@ class App extends React.PureComponent {
 
     return (
       <div className={classes.container}>
+        
         <div className={classes.header}>
           <h4 className={classes.title}>Sample App</h4>
         </div>
-        <div className={classes.panel}>
-          <h4 className={classes.subtitle}>Reference Image</h4>
-          <div className={classes.imagePanel}>
-            <img ref={this.refImage} className={classes.image} src={TEST_IMAGE_URL} alt="" />
-            <canvas ref={this.refCanvas} className={classes.canvas} width={300} height={450} />
+
+        <div className={classes.main}>
+
+          <div className={classes.panel}>
+            <h4 className={classes.subtitle}>Reference Image - {this.state.refMessage}</h4>
+            <div className={classes.imagePanel}>
+              <img ref={this.refImage} className={classes.image} src={TEST_IMAGE_URL} alt="" />
+              <canvas ref={this.refCanvas} className={classes.canvas} width={300} height={450} />
+            </div>
+            <div className={classes.control}>
+              <input ref={this.refFile} type="file" accept="image/png, image/jpeg" onChange={this.loadRefImage} /> 
+            </div>
           </div>
-          <div className={classes.control}>
-            <input ref={this.refFile} type="file" accept="image/png, image/jpeg" onChange={this.loadRefImage} /> 
+
+          <div className={classes.panel}>
+            <h4 className={classes.subtitle}>Query Image - {this.state.queryMessage}</h4>
+            <div className={classes.imagePanel}>
+              <img ref={this.queryImage} className={classes.image} src="" alt="" />
+              <canvas ref={this.queryCanvas} className={classes.canvas} width={300} height={450} />
+            </div>
+            <div className={classes.control}>
+              <input ref={this.queryFile} type="file" accept="image/png, image/jpeg" onChange={this.loadQueryImage} /> 
+            </div>
           </div>
+
         </div>
+        
       </div>
     )
 

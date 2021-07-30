@@ -14,10 +14,18 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 Install the project first and run (see instructions below).
 
+### Load the reference image.
+
 1. Select the file input and choose a reference photo or if you are in mobile, take a picture.
 2. A box will be drawn if a face is detected and a name will be assigned.
 
-Second part, uploading query image for face recognition itself, not yet implemented...
+### Next, load the query/comparison image.
+
+1. Do the same thing like in (1) above.
+2. If the face is detected and there is match, it will show the name. Otherwise, unknown will be shown. If the face is not detected, it will not show any box.
+
+
+**Note: If you are going to test this `with face mask on`, you must make the `reference image without the face mask`.**
 
 
 ## Available Scripts
