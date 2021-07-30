@@ -10,9 +10,25 @@ Well, it depends. If it can make correct prediction that is at the same rate as 
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+## How To Use (v0.1.0 2021/07/30)
+
+Install the project first and run (see instructions below).
+
+1. Select the file input and choose a reference photo or if you are in mobile, take a picture.
+2. A box will be drawn if a face is detected and a name will be assigned.
+
+Second part, uploading query image for face recognition itself, not yet implemented...
+
+
 ## Available Scripts
 
+First, download or clone the project.
+
 In the project directory, you can run:
+
+### `npm install`
+
+Installs all the required modules used in the project.
 
 ### `npm start`
 
