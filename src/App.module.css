@@ -31,14 +31,14 @@
   position: relative;
 }
 
-.image, .canvas {
+.image, .canvas, .loader, .queryLoader {
   border: 1px solid #fff;
   position: absolute;
   left: 0px;
   top: 0px;
   width: 300px;
   height: 450px;
-  object-fit: cover;
+  object-fit: contain;
   box-sizing: border-box;
 }
 .image {
@@ -46,6 +46,12 @@
 }
 .canvas {
   z-index: 2;
+}
+.loader, .queryLoader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
 }
 
 @media screen and (max-width: 600px) {

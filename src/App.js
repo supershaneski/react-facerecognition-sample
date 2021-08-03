@@ -2,7 +2,7 @@ import React from 'react';
 import * as faceapi from 'face-api.js'
 import classes from './App.module.css';
 
-const TEST_IMAGE_URL = process.env.PUBLIC_URL; // + '/person1.jpg'
+const TEST_IMAGE_URL = process.env.PUBLIC_URL;
 const MODEL_URL = process.env.PUBLIC_URL + '/models'
 
 const FaceDetectors = {
@@ -28,6 +28,8 @@ class App extends React.PureComponent {
       inputIndex: 5,
       refMessage: "",
       queryMessage: "",
+      loaderRef: false,
+      queryLoader: false,
     }
 
     this.refCanvas = React.createRef()
@@ -57,6 +59,7 @@ class App extends React.PureComponent {
     await faceapi.loadTinyFaceDetectorModel(MODEL_URL)
     await faceapi.loadFaceLandmarkTinyModel(MODEL_URL)
     await faceapi.loadFaceRecognitionModel(MODEL_URL)
+    await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL)
     
   }
 
@@ -65,7 +68,8 @@ class App extends React.PureComponent {
     this.setState({
       inputSize: 608,
       inputIndex: 5,
-      refMessage: ""
+      refMessage: "Processing...",
+      loaderRef: true,
     })
 
     const ctx = this.refCanvas.current.getContext("2d")
@@ -75,6 +79,7 @@ class App extends React.PureComponent {
     const img = await faceapi.bufferToImage(imgFile)
     this.refImage.current.src = img.src;
 
+    //await this.loadTinyModel()
     await this.updateRefImageResults()
 
   }
@@ -84,7 +89,8 @@ class App extends React.PureComponent {
     this.setState({
       inputSize: 608,
       inputIndex: 5,
-      queryMessage: ""
+      queryMessage: "Processing...",
+      queryLoader: true,
     })
 
     const ctx = this.queryCanvas.current.getContext("2d")
@@ -94,6 +100,7 @@ class App extends React.PureComponent {
     const img = await faceapi.bufferToImage(imgFile)
     this.queryImage.current.src = img.src;
     
+    //await this.loadTinyModel()
     await this.updateQueryImageResults()
 
   }
@@ -121,27 +128,22 @@ class App extends React.PureComponent {
   }
 
   async updateRefImageResults() {
-
-    await this.loadTinyModel()
-
+    
     const fullFaceDescriptions = await faceapi
       .detectAllFaces(this.refImage.current, this.getFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors()
+    
 
     if(!fullFaceDescriptions.length) {
-
+      
       if(this.state.inputIndex > 0) {
-
-        const newIndex = this.state.inputIndex - 1
-
-        const newInputSize = listInputSizes[newIndex]
-
-        this.setState({
-            inputSize: newInputSize,
-            inputIndex: newIndex,
-        })
-
+        
+        this.setState((prev) => ({
+          inputIndex: prev.inputIndex - 1,
+          inputSize: listInputSizes[prev.inputIndex - 1],
+        }))
+        
         setTimeout(() => {
 
           this.updateRefImageResults()
@@ -149,102 +151,81 @@ class App extends React.PureComponent {
         }, 500)
 
       } else {
-
+        
         this.setState({
-          refMessage: "cannot detect"
+          refMessage: "Not detected",
+          loaderRef: false,
         })
-
+        
       }
 
       return;
     }
-
+    
     faceMatcher = new faceapi.FaceMatcher(fullFaceDescriptions)
-
+    
     faceapi.matchDimensions(this.refCanvas.current, this.refImage.current)
     const resizedResults = faceapi.resizeResults(fullFaceDescriptions, this.refImage.current)
     
-    const score = resizedResults.length > 0 ? resizedResults[0].detection._score : 0;
-    
     const labels = faceMatcher.labeledDescriptors
       .map(ld => ld.label)
+    
+    var boxColor = '#f0d';
 
     resizedResults.forEach(({ detection, descriptor }) => {
       const label = faceMatcher.findBestMatch(descriptor).toString()
-      
-      const options = { label }
+      const options = { label, boxColor }
       const drawBox = new faceapi.draw.DrawBox(detection.box, options)
       drawBox.draw(this.refCanvas.current)
     })
-
-    if(score === 0 && this.state.inputIndex > 0) {
-
-      const newIndex = this.state.inputIndex - 1
-
-      const newInputSize = listInputSizes[newIndex]
-
-      this.setState({
-        inputSize: newInputSize,
-        inputIndex: newIndex,
-      })
-
-      setTimeout(() => {
-
-        this.updateRefImageResults()
-
-      }, 500)
-
-    } else {
-
-      if(score === 0) {
-
-        this.setState({
-          refMessage: "cannot detect"
-        })
-
-      }
-      
-
-    }
-
+    
+    this.setState({
+      refMessage: "Loaded",
+      loaderRef: false,
+    })
+    
   }
 
   async updateQueryImageResults() {
-
-    await this.loadTinyModel()
-
+    
     if(!faceMatcher) {
+
+      this.setState({
+        queryMessage: "No ref image found",
+        queryLoader: false,
+      })
+
       return;
     }
-
+    
     const results = await faceapi
       .detectAllFaces(this.queryImage.current, this.getFaceDetectorOptions())
       .withFaceLandmarks()
       .withFaceDescriptors()
-
+    
     faceapi.matchDimensions(this.queryCanvas.current, this.queryImage.current)
-
+    
     const resizedResults = faceapi.resizeResults(results, this.queryImage.current)
 
     const score = resizedResults.length > 0 ? resizedResults[0].detection._score : 0;
     
+    const boxColor = '#0df';
+    var label;
+
     resizedResults.forEach(({detection, descriptor}) => {
-      const label = faceMatcher.findBestMatch(descriptor).toString()
-      const options = { label }
+      label = faceMatcher.findBestMatch(descriptor).toString()
+      const options = { label, boxColor }
       const drawBox = new faceapi.draw.DrawBox(detection.box, options)
       drawBox.draw(this.queryCanvas.current)
     })
 
     if(score === 0 && this.state.inputIndex > 0) {
-
-      const newIndex = this.state.inputIndex - 1
-
-      const newInputSize = listInputSizes[newIndex]
-
-      this.setState({
-        inputSize: newInputSize,
-        inputIndex: newIndex,
-      })
+      
+      this.setState((prev) => ({
+        inputIndex: prev.inputIndex - 1,
+        inputSize: listInputSizes[prev.inputIndex - 1],
+        queryMessage: "Processing... ",
+      }))
 
       setTimeout(() => {
 
@@ -255,9 +236,17 @@ class App extends React.PureComponent {
     } else {
 
       if(score === 0) {
-
+        
         this.setState({
-          queryMessage: "No match"
+          queryMessage: "No match",
+          queryLoader: false,
+        })
+
+      } else {
+        
+        this.setState({
+          queryMessage: label.indexOf("unknown") >= 0 ? "No match found" : "Match found",
+          queryLoader: false,
         })
 
       }
@@ -272,7 +261,7 @@ class App extends React.PureComponent {
       <div className={classes.container}>
         
         <div className={classes.header}>
-          <h4 className={classes.title}>Sample App</h4>
+          <h4 className={classes.title}>Face Recognition Sample</h4>
         </div>
 
         <div className={classes.main}>
@@ -282,6 +271,10 @@ class App extends React.PureComponent {
             <div className={classes.imagePanel}>
               <img ref={this.refImage} className={classes.image} src={TEST_IMAGE_URL} alt="" />
               <canvas ref={this.refCanvas} className={classes.canvas} width={300} height={450} />
+              {
+                this.state.loaderRef &&
+                <div className={classes.loader}><span>Processing...</span></div>
+              }
             </div>
             <div className={classes.control}>
               <input ref={this.refFile} type="file" accept="image/png, image/jpeg" onChange={this.loadRefImage} /> 
@@ -293,6 +286,10 @@ class App extends React.PureComponent {
             <div className={classes.imagePanel}>
               <img ref={this.queryImage} className={classes.image} src="" alt="" />
               <canvas ref={this.queryCanvas} className={classes.canvas} width={300} height={450} />
+              {
+                this.state.queryLoader &&
+                <div className={classes.queryLoader}><span>Processing...</span></div>
+              }
             </div>
             <div className={classes.control}>
               <input ref={this.queryFile} type="file" accept="image/png, image/jpeg" onChange={this.loadQueryImage} /> 

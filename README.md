@@ -3,9 +3,10 @@
 A sample React project using [face-api.js](https://www.npmjs.com/package/face-api.js) to implement a **face recognition application** with particular focus on **people with face mask on**.
 
 I know that it is a difficult thing to do and somewhat a holy grail.
-But, I think, the question is not if it is impossible to do (*nothing is impossible!*) but rather if I can make it, will it be accurate?
+But, I think, the question is not if it is impossible to do (*nothing is impossible!*) but rather if it will be accurate?
 
-Well, it depends. If it can make correct prediction that is at the same rate as a real person then I think that it is good enough as a proof of concept.
+Well, it depends. If it can make correct prediction correctly that is at the same rate as a real person then I think that it is good enough as a proof of concept.
+
 
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
